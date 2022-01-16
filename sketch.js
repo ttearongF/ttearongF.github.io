@@ -1,93 +1,70 @@
+// Copyright (c) 2019 ml5
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
 
-// CV 관련 코드.
-var classifier;
-var imageModelURL = 'https://teachablemachine.withgoogle.com/models/GjAMkjurb/';    // 훈련된 모델의 업로드 URL.
+/* ===
+ml5 Example
+Webcam Image Classification using a pre-trained customized model and p5.js
+This example uses p5 preload function to create the classifier
+=== */
 
-// 동영상 관련 코드.
-var video;
-var flippedVideo;
+// Classifier Variable
+let classifier;
+// Model URL
+let imageModelURL = 'https://teachablemachine.withgoogle.com/models/bXy2kDNi/';
 
-var boxX = 400
-var boxY = 400
-var boxSize = 20
+// Video
+let video;
+let flippedVideo;
+// To store the classification
+let label = "";
 
-var videoWidth = 160
-var videoHeight = 120
-
-var canvasWidth = 800
-var canvasHeight = 800
-
-
+// Load the model first
+function preload() {
+  classifier = ml5.imageClassifier(imageModelURL + 'model.json');
+}
 
 function setup() {
-
-  // 모델 분류 라벨 불러오기
-  classifier = ml5.imageClassifier(imageModelURL + 'model.json');
-
-  createCanvas(800, 800);
-  
-  // 비디오 캡처 설정.
+  createCanvas(320, 260);
+  // Create the video
   video = createCapture(VIDEO);
-  video.size(videoWidth, videoHeight);
+  video.size(320, 240);
   video.hide();
-  
-  // 비디오 분류 관련 코드.
-  updateModel()
+
+  flippedVideo = ml5.flipImage(video)
+  // Start classifying
+  classifyVideo();
 }
-
-
 
 function draw() {
-  background(50);
-  noStroke()
-  
-  // 박스 그리기
-  rect(boxX, boxY, boxSize, boxSize);
-  
-  // 웹캠 비디오 표시.
-  image(flippedVideo, canvasWidth - videoWidth, 0);
+  background(0);
+  // Draw the video
+  image(flippedVideo, 0, 0);
+
+  // Draw the label
+  fill(255);
+  textSize(16);
+  textAlign(CENTER);
+  text(label, width / 2, height - 4);
 }
 
-
-
-// 카메라를 통해 이미지 받고 모델 prediction 하는 코드
-function updateModel(){
-  flippedVideo = ml5.flipImage(video);
-  classifier.classify(flippedVideo, classiferHandler);
-  flippedVideo.remove();
+// Get a prediction for the current video frame
+function classifyVideo() {
+  flippedVideo = ml5.flipImage(video)
+  classifier.classify(flippedVideo, gotResult);
 }
 
-
-
-// prediction 결과 핸들링 함수
-function classiferHandler(error, results) {
-  
-  // results에는 각 클래스별 확률(점수)가 나옴
-  // 0부터 가장 높은 순서대로 나옴
-  // 성녕이가 학습한 모델은 Idle, Up, Down, Left, Right 로 구성됨
-  var result = results[0].label;
-
-  if (result == "Up") {
-    moveBox(0,-2)
-  } else if (result == "Down") {
-    moveBox(0,2)
-  } else if (result == "Left") {
-    moveBox(-2,0)
-  } else if (result == "Right") {
-    moveBox(2,0)
+// When we get a result
+function gotResult(error, results) {
+  // If there is an error
+  if (error) {
+    console.error(error);
+    return;
   }
-  // Idle은 동작 X
-
-  console.log(result)
-  
-  // 다음 결과를 받기 위한 prediction
-  updateModel();
-}
-
-
-
-// 상자의 위치를 amount만큼 움직이는 함수
-function moveBox(amountX, amountY) {
-  boxX += amountX;
-  boxY += amountY;
+  // The results are in an array ordered by confidence.
+  // console.log(results[0]);
+  label = results[0].label;
+  // Classifiy again!
+  classifyVideo();
 }
